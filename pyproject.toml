@@ -4,4 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "apscheduler>=3.11.3",
+    "httpx>=0.28.1",
+    "pydantic>=2.13.5",
+    "python-telegram-bot>=22.8",
+]
