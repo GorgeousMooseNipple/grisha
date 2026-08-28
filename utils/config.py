@@ -19,6 +19,7 @@ class Creds:
 
 @dataclass
 class Settings:
+    ip: str
     db_path: str = str(Path.home().joinpath(".local/share/grisha.db"))
 
 
