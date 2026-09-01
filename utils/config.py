@@ -13,14 +13,16 @@ DEFAULT_PATH = Path.home().joinpath(".config/grisha.toml")
 
 @dataclass
 class Creds:
+    vm_ip: str
     cc_token: str
     telegram_token: str
 
 
 @dataclass
 class Settings:
-    ip: str
     db_path: str = str(Path.home().joinpath(".local/share/grisha.db"))
+    default_threshold: int = 90
+    init_sql: str = str(Path(__file__).parent.parent.joinpath("db/init.sql"))
 
 
 @dataclass
@@ -48,4 +50,4 @@ def _load() -> Config:
 
 
 CONFIG = _load()
-logger.debug(f"Loaded config:\n{CONFIG}")
+logger.debug(f"Loaded config settings:\n{CONFIG.settings}")

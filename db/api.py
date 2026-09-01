@@ -1,0 +1,56 @@
+import logging
+import aiosqlite
+from utils.config import CONFIG
+from pathlib import Path
+from typing import Optional, Iterable
+
+from .model import User
+
+
+logger = logging.getLogger(__name__)
+
+USERS_TABLE = "users"
+USAGE_TABLE = "net_usage"
+
+
+class DbApi:
+    def __init__(self):
+        self.db_path = Path(CONFIG.settings.db_path)
+        if not self.db_path.parent.exists():
+            logger.debug(f"Creating DB parent path at '{self.db_path.parent}'")
+            self.db_path.parent.mkdir(parents=True)
+
+    async def init_db(self, script_path: str | Path):
+        logger.info("Initiating DB")
+        script_path = Path(script_path)
+
+        if not script_path.exists():
+            raise RuntimeError(
+                f"Path to DB init script does not exist at '{script_path}'"
+            )
+
+        async with aiosqlite.connect(self.db_path) as conn:
+            init_script = script_path.read_text("utf-8")
+            await conn.executescript(init_script)
+
+    async def _query_users(
+        self, where: str = "", params: Optional[Iterable] = None
+    ) -> list[User]:
+        query = f"SELECT * FROM {USERS_TABLE}"
+        if where:
+            query = f"{query} {where}"
+        logger.debug(f"Executing query '{query}'")
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            cursor.row_factory = aiosqlite.Row
+            await cursor.execute(query, params)
+            user_rows = await cursor.fetchall()
+            users = [User(**row) for row in user_rows]
+            logger.debug(f"Got {len(users)} User records from DB")
+            return users
+
+    async def users(self) -> list[User]:
+        return await self._query_users()
+
+    async def users_with_notification(self) -> list[User]:
+        return await self._query_users("WHERE notify = TRUE")
