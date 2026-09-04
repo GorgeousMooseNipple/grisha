@@ -27,7 +27,7 @@ sh.setLevel(log_level)
 sh.setFormatter(log_fmt)
 
 fh = RotatingFileHandler(
-    filename="/tmp/grisha.log",
+    filename=CONFIG.settings.log_file,
     maxBytes=50 * 1024 * 1024,
     backupCount=3,
     encoding="utf-8",

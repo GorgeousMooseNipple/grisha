@@ -24,6 +24,7 @@ class Settings:
     default_threshold: int = 90
     init_sql: str = str(Path(__file__).parent.parent.joinpath("db/init.sql"))
     replies_file: str = str(Path(__file__).parent.parent.joinpath("replies.json"))
+    log_file: str = "/tmp/grisha.log"
 
 
 @dataclass
