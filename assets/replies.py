@@ -1,0 +1,26 @@
+import textwrap
+
+GREETINGS = textwrap.dedent("""\
+            Guten Tag!
+            Меня зовут Гриша. Schön, dich kennenzulernen, {name}! Присаживайся, здесь viele свободных мест.
+            Давай расскажу о себе: Я живу в далекой Deutschland, наслаждаюсь пивом и отлично провожу время!
+            Если хочешь, буду держать тебя в курсе событий у нас тут :)
+            Oh ja! Willkommen!
+            """)
+
+CONFUSED_REPLIES = [
+    textwrap.dedent(reply)
+    for reply in (
+        "...wut?",
+        "Извини, ich verstehe das nicht :(",
+        "Bitte nur auf Deutsch!",
+        "О да, я люблю ПИВО!!! Извини, что ты говоришь?",
+        "Не могу разобрать, die Musik ist zu laut!",
+        "Oh Bier, meine Liebe..",
+        "Ich verstehe kein Wort Russisch, сори",
+        "Ich bin zu betrunken, lasst mich in Ruhe :)",
+        "huh? ПИВОООО",
+        "Großartig! Aber ich muss geschäftlich verreisen",
+        "Ich muss dringend pinkeln – zu viel Bier! Oh ja!",
+    )
+]

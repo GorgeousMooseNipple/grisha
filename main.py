@@ -1,6 +1,6 @@
 import os
 import logging
-import asyncio
+import random
 from logging.handlers import RotatingFileHandler
 from telegram import Update
 from telegram.ext import (
@@ -13,6 +13,7 @@ from telegram.ext import (
 from utils import CONFIG
 from cc import CCApi
 from db import DbApi
+from assets import replies
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -48,25 +49,29 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not user:
         return
     logger.debug(f"Got /start command from: {user.username}({user.id})")
-    await context.bot.send_message(user.id, text="Hello there!")
+    greeting = replies.GREETINGS.format(name=user.name)
+    await context.bot.send_message(user.id, text=greeting)
 
 
-async def repeat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def confused_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     message = update.effective_message
     if not user or not message:
         return
     logger.debug(f"Got message '{message.text}' from: {user.username}({user.id})")
-    await context.bot.send_message(user.id, text=f"You said: {message.text}")
+    reply = random.choice(replies.CONFUSED_REPLIES)
+    await context.bot.send_message(user.id, text=reply)
 
 
 if __name__ == "__main__":
     app = ApplicationBuilder().token(CONFIG.creds.telegram_token).build()
     start_handler = CommandHandler("start", start)
-    repeat_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, repeat)
+    fallback_message_handler = MessageHandler(
+        filters.TEXT & ~filters.COMMAND, confused_reply
+    )
 
     app.add_handler(start_handler)
-    app.add_handler(repeat_handler)
+    app.add_handler(fallback_message_handler)
 
     logger.info("Polling for updates...")
     app.run_polling()

@@ -13,3 +13,4 @@ wheels/
 *.db
 *.toml
 config.toml
+*.json
