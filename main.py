@@ -1,6 +1,17 @@
 import os
 import logging
 import asyncio
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    ContextTypes,
+    CommandHandler,
+    MessageHandler,
+    filters,
+)
+from utils import CONFIG
+from cc import CCApi
+from db import DbApi
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -16,30 +27,33 @@ logger.addHandler(sh)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("aiosqlite").setLevel(logging.WARNING)
+logging.getLogger("telegram").setLevel(logging.WARNING)
 
 
-from utils import CONFIG
-from cc import CCApi
-from db import DbApi
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not user:
+        return
+    logger.debug(f"Got /start command from: {user.username}({user.id})")
+    await context.bot.send_message(user.id, text="Hello there!")
 
 
-async def main():
-    cc_api = CCApi()
-    vm = await cc_api.vm_by_ip(CONFIG.creds.vm_ip)
-    assert vm is not None
-    logger.info(f"Our baby: {vm}")
-    usage = await cc_api.bandwidth_usage(vm.id)
-    if usage.is_ok():
-        logger.info(f"Usage: {usage.data}")
-    else:
-        logger.error(f"Error getting usage: {usage.err}")
-    await cc_api.shutdown()
-    db = DbApi()
-    await db.init_db(CONFIG.settings.init_sql)
-    users = await db.users_with_notification()
-    for user in users:
-        logger.info(f"Got user: {user}")
+async def repeat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    message = update.effective_message
+    if not user or not message:
+        return
+    logger.debug(f"Got message '{message.text}' from: {user.username}({user.id})")
+    await context.bot.send_message(user.id, text=f"You said: {message.text}")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    app = ApplicationBuilder().token(CONFIG.creds.telegram_token).build()
+    start_handler = CommandHandler("start", start)
+    repeat_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, repeat)
+
+    app.add_handler(start_handler)
+    app.add_handler(repeat_handler)
+
+    logger.info("Polling for updates...")
+    app.run_polling()
