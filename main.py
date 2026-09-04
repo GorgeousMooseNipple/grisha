@@ -49,7 +49,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not user:
         return
     logger.debug(f"Got /start command from: {user.username}({user.id})")
-    greeting = replies.GREETINGS.format(name=user.name)
+    greeting = replies.GREETINGS.format(name=user.first_name)
     await context.bot.send_message(user.id, text=greeting)
 
 
