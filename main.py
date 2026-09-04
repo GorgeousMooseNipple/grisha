@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+from logging.handlers import RotatingFileHandler
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -19,10 +20,22 @@ log_fmt = logging.Formatter("%(module)s:%(lineno)s [%(levelname)s]: %(message)s"
 
 logger = logging.getLogger()
 logger.setLevel(log_level)
+
 sh = logging.StreamHandler()
 sh.setLevel(log_level)
 sh.setFormatter(log_fmt)
+
+fh = RotatingFileHandler(
+    filename="/tmp/grisha.log",
+    maxBytes=50 * 1024 * 1024,
+    backupCount=3,
+    encoding="utf-8",
+)
+fh.setLevel(log_level)
+fh.setFormatter(log_fmt)
+
 logger.addHandler(sh)
+logger.addHandler(fh)
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
