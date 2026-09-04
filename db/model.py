@@ -4,6 +4,7 @@ from datetime import date
 
 class User(BaseModel):
     id: int
+    username: str
     name: str
     notify: bool
     threshold: int
@@ -12,4 +13,5 @@ class User(BaseModel):
 class NetUsage(BaseModel):
     id: int
     month: date
-    mb: int
+    quota: int
+    used: int
