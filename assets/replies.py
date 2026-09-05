@@ -24,3 +24,5 @@ CONFUSED_REPLIES = [
         "Ich muss dringend pinkeln – zu viel Bier! Oh ja!",
     )
 ]
+
+UNKNOWN_COMMAND = "Я не знаю что с этим делать :("

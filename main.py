@@ -45,20 +45,32 @@ logging.getLogger("telegram").setLevel(logging.WARNING)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"Start update: {update}")
     user = update.effective_user
     if not user:
         return
-    logger.debug(f"Got /start command from: {user.username}({user.id})")
+    logger.info(f"Got /start command from: {user.username}({user.id})")
     greeting = replies.GREETINGS.format(name=user.first_name)
     await context.bot.send_message(user.id, text=greeting)
 
 
-async def confused_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"Fallback command update: {update}")
     user = update.effective_user
     message = update.effective_message
     if not user or not message:
         return
-    logger.debug(f"Got message '{message.text}' from: {user.username}({user.id})")
+    logger.info(f"Got command '{message.text}' from: {user.username}({user.id})")
+    await message.reply_text(replies.UNKNOWN_COMMAND)
+
+
+async def confused_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"Fallback message update: {update}")
+    user = update.effective_user
+    message = update.effective_message
+    if not user or not message:
+        return
+    logger.info(f"Got message '{message.text}' from: {user.username}({user.id})")
     reply = random.choice(replies.CONFUSED_REPLIES)
     await context.bot.send_message(user.id, text=reply)
 
@@ -66,11 +78,13 @@ async def confused_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == "__main__":
     app = ApplicationBuilder().token(CONFIG.creds.telegram_token).build()
     start_handler = CommandHandler("start", start)
+    fallback_command_handler = MessageHandler(filters.COMMAND, fallback_command)
     fallback_message_handler = MessageHandler(
         filters.TEXT & ~filters.COMMAND, confused_reply
     )
 
     app.add_handler(start_handler)
+    app.add_handler(fallback_command_handler)
     app.add_handler(fallback_message_handler)
 
     logger.info("Polling for updates...")
