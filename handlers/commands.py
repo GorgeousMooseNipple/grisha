@@ -12,6 +12,7 @@ from telegram.ext import (
 from assets import replies
 from cc import CCApi, VmInfo
 from db import DbApi
+from db.model import YearMonth
 
 
 logger = logging.getLogger(__name__)
@@ -60,13 +61,13 @@ async def current_usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(user.id, text=usage_reply)
 
 
-def _parse_stats_arg(arg: str) -> tuple[Optional[int], Optional[date]]:
+def _parse_stats_arg(arg: str) -> tuple[Optional[int], Optional[YearMonth]]:
     try:
         return int(arg), None
     except ValueError:
         pass
 
-    return None, date.strptime(arg, "%Y-%m")
+    return None, YearMonth.from_str(arg)
 
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, field_serializer
+from pydantic import BaseModel, field_validator, field_serializer, ConfigDict
 from datetime import date
 from utils.utils import mb_pretty
 
@@ -14,20 +14,31 @@ class User(BaseModel):
     threshold: int
 
 
+class YearMonth(date):
+    @staticmethod
+    def from_str(year_month: str) -> "YearMonth":
+        return YearMonth.strptime(year_month, YEAR_MONTH_FMT)
+
+    def __str__(self) -> str:
+        return self.strftime(YEAR_MONTH_FMT)
+
+
 class NetUsage(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     id: int
-    year_month: date
+    year_month: YearMonth
     quota: float
     used: float
 
     @field_validator("year_month", mode="before")
     @classmethod
-    def year_month_from_str(cls, year_month: str) -> date:
-        return date.strptime(year_month, YEAR_MONTH_FMT)
+    def year_month_from_str(cls, year_month: str) -> YearMonth:
+        return YearMonth.from_str(year_month)
 
     @field_serializer("year_month")
     def year_month_to_str(self, year_month: date) -> str:
-        return year_month.strftime(YEAR_MONTH_FMT)
+        return str(year_month)
 
     def used_pretty(self) -> str:
         return mb_pretty(self.used)
