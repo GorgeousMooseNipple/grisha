@@ -3,8 +3,9 @@ import aiosqlite
 from utils.config import CONFIG
 from pathlib import Path
 from typing import Optional, Iterable
+from datetime import date
 
-from .model import User
+from .model import User, NetUsage
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class DbApi:
         query = f"SELECT * FROM {USERS_TABLE}"
         if where:
             query = f"{query} {where}"
-        logger.debug(f"Executing users query '{query}'")
+        logger.debug(f"Executing {USERS_TABLE} query '{query}'")
         async with aiosqlite.connect(self.db_path) as conn:
             cursor = await conn.cursor()
             cursor.row_factory = aiosqlite.Row
@@ -54,3 +55,34 @@ class DbApi:
 
     async def users_with_notification(self) -> list[User]:
         return await self._query_users("WHERE notify = TRUE")
+
+    async def _query_stats(
+        self,
+        where: str = "",
+        params: Optional[Iterable] = None,
+        limit: Optional[int] = None,
+    ) -> list[NetUsage]:
+        query = f"SELECT * FROM {USAGE_TABLE}"
+        if where:
+            query = f"{query} {where}"
+        query = f"{query} ORDER BY year_month DESC"
+        if limit:
+            query = f"{query} LIMIT {limit}"
+        logger.debug(f"Executing {USAGE_TABLE} query '{query}'")
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            cursor.row_factory = aiosqlite.Row
+            await cursor.execute(query, params)
+            usage_rows = await cursor.fetchall()
+            stats = [NetUsage(**row) for row in usage_rows]
+            logger.debug(f"Got {len(stats)} NetUsage records from DB")
+            return stats
+
+    async def stats(self, limit: Optional[int] = None) -> list[NetUsage]:
+        return await self._query_stats(limit=limit)
+
+    async def stats_since(self, since: date) -> list[NetUsage]:
+        since_str = since.strftime("%Y-%m")
+        return await self._query_stats(
+            where=f"WHERE year_month >= ?", params=(since_str,)
+        )
