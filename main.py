@@ -6,6 +6,7 @@ from logging.handlers import RotatingFileHandler
 from telegram.ext import ApplicationBuilder, Application
 from utils import CONFIG
 from cc import CCApi
+from db import DbApi
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -41,12 +42,18 @@ logging.getLogger("telegram").setLevel(logging.WARNING)
 
 async def setup(app: Application):
     logger.debug("Running global setup")
+
     cc_client = CCApi()
     app.bot_data["cc_client"] = cc_client
+
     vm = await cc_client.vm_by_ip(CONFIG.creds.vm_ip)
     if not vm:
         raise RuntimeError("Failed to get info on our baby!")
     app.bot_data["vm"] = vm
+
+    db = DbApi()
+    await db.init_db(CONFIG.settings.init_sql)
+    app.bot_data["db"] = db
 
 
 async def teardown(app: Application):
