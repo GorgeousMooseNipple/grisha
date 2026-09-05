@@ -29,7 +29,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(user.id, text=greeting)
 
     db: DbApi = context.bot_data["db"]
-    if await db.user_exists(user.id):
+    if await db.user_by_id(user.id):
         logger.info(f"{user} already saved to DB")
         await context.bot.send_message(
             user.id, text="Рад снова встретить! Willkommen zurück!"
@@ -150,6 +150,66 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(user.id, text=reply)
 
 
+async def set_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"Threshold update: {update}")
+    user = update.effective_user
+    if not user:
+        logger.warning("User not set for /threshold command")
+        return
+
+    args = context.args
+    logger.info(
+        f"Got /threshold command from: {user.username}({user.id}) with args: {args}"
+    )
+    if not args:
+        logger.warning("/threshold called with no arguments")
+        await context.bot.send_message(
+            user.id, text="С этой командой нужно передать число от 1 до 99!"
+        )
+        return
+
+    first, *rest = args
+    try:
+        new_threshold = int(first)
+    except ValueError:
+        logger.warning(f"/threshold expects integer, got {first}")
+        await context.bot.send_message(
+            user.id, text=f"'{first}'?? Was?) И тебе {first})"
+        )
+        return
+
+    if new_threshold < 1 or new_threshold > 99:
+        logger.warning(f"Invalid threshold {new_threshold} given")
+        await context.bot.send_message(user.id, text=f"Число от 1 до 99, bitte)")
+        return
+
+    db: DbApi = context.bot_data["db"]
+    existing_user = await db.user_by_id(user.id)
+    if not existing_user:
+        logger.error(f"/threshold request from unrecognized {user}")
+        await context.bot.send_message(user.id, text=f"Подожди, а ты как сюда попал?!")
+        return
+
+    if new_threshold == existing_user.threshold:
+        logger.info(f"/threshold request from unrecognized {user}")
+        await context.bot.send_message(
+            user.id, text=f"Schönheit! Мне даже делать ничего не пришлось)"
+        )
+        return
+
+    try:
+        await db.set_threshold(existing_user.id, new_threshold)
+        reply = "Готово!\n"
+        if rest:
+            reply += f"P.S. а вот как с этим быть я не понял: '{' '.join(rest)}'"
+    except Exception as e:
+        logger.error(
+            f"Failed to set threshold to {new_threshold} for {existing_user} with {e}"
+        )
+        reply = random.choice(replies.BOT_ERROR)
+    await context.bot.send_message(user.id, text=reply)
+
+
 async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
     logger.debug(f"Fallback command update: {update}")
     user = update.effective_user
@@ -163,4 +223,5 @@ async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
 start_handler = CommandHandler("start", start)
 usage_handler = CommandHandler("usage", current_usage)
 stats_handler = CommandHandler("stats", stats)
+threshold_handler = CommandHandler("threshold", set_threshold)
 fallback_handler = MessageHandler(filters.COMMAND, fallback_command)

@@ -96,10 +96,20 @@ class DbApi:
             )
             await conn.commit()
 
-    async def user_exists(self, id: int) -> bool:
+    async def user_by_id(self, id: int) -> Optional[User]:
         async with aiosqlite.connect(self.db_path) as conn:
             cursor = await conn.cursor()
             cursor.row_factory = aiosqlite.Row
-            await cursor.execute(f"SELECT 1 FROM {USERS_TABLE} WHERE id = ?", (id,))
+            query = f"SELECT * FROM {USERS_TABLE} WHERE id = ?"
+            logger.debug(f"Executing query '{query}'")
+            await cursor.execute(query, (id,))
             user = await cursor.fetchone()
-            return user is not None
+            return User(**user) if user else None
+
+    async def set_threshold(self, user_id: int, threshold: int):
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            query = f"UPDATE {USERS_TABLE} SET threshold = ? WHERE id = ?"
+            logger.debug(f"Executing query: '{query}'")
+            await cursor.execute(query, (threshold, user_id))
+            await conn.commit()
