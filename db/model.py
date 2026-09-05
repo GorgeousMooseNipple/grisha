@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import date
+from utils.utils import mb_pretty
 
 
 class User(BaseModel):
@@ -12,6 +13,12 @@ class User(BaseModel):
 
 class NetUsage(BaseModel):
     id: int
-    month: date
-    quota: int
-    used: int
+    year_month: date
+    quota: float
+    used: float
+
+    def used_pretty(self) -> str:
+        return mb_pretty(self.used)
+
+    def quota_pretty(self) -> str:
+        return mb_pretty(self.quota)

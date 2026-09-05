@@ -21,7 +21,7 @@ class Creds:
 @dataclass
 class Settings:
     db_path: str = str(Path.home().joinpath(".local/share/grisha.db"))
-    default_threshold: int = 90
+    default_threshold: int = 95
     init_sql: str = str(Path(__file__).parent.parent.joinpath("db/init.sql"))
     replies_file: str = str(Path(__file__).parent.parent.joinpath("replies.json"))
     log_file: str = "/tmp/grisha.log"
