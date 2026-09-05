@@ -25,6 +25,14 @@ CONFUSED_REPLIES = [
     )
 ]
 
+BEER_REPLIES = [
+    "Пиво? ПИИИВООООООО",
+    "Mmm, Bier, meine Liebe!",
+    "Да, больше пива!",
+    "Мне грустно когда пива нет рядом :(",
+    "Заглядывай к нам в таверну на кружечку Gänstaller Bräu Schwarze :)",
+]
+
 UNKNOWN_COMMAND = "Я не знаю что с этим делать :("
 
 BOT_ERROR = [

@@ -19,7 +19,10 @@ async def confused_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not user or not message:
         return
     logger.info(f"Got message '{message.text}' from: {user.username}({user.id})")
-    reply = random.choice(replies.CONFUSED_REPLIES)
+    if message.text and "пив" in message.text.casefold():
+        reply = random.choice(replies.BEER_REPLIES)
+    else:
+        reply = random.choice(replies.CONFUSED_REPLIES)
     await context.bot.send_message(user.id, text=reply)
 
 
