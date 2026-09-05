@@ -17,7 +17,7 @@ class DbApi:
     def __init__(self):
         self.db_path = Path(CONFIG.settings.db_path)
         if not self.db_path.parent.exists():
-            logger.debug(f"Creating DB parent path at '{self.db_path.parent}'")
+            logger.info(f"Creating DB parent path at '{self.db_path.parent}'")
             self.db_path.parent.mkdir(parents=True)
 
     async def init_db(self, script_path: str | Path):
@@ -39,7 +39,7 @@ class DbApi:
         query = f"SELECT * FROM {USERS_TABLE}"
         if where:
             query = f"{query} {where}"
-        logger.debug(f"Executing query '{query}'")
+        logger.debug(f"Executing users query '{query}'")
         async with aiosqlite.connect(self.db_path) as conn:
             cursor = await conn.cursor()
             cursor.row_factory = aiosqlite.Row

@@ -31,7 +31,7 @@ class CCApi:
         }
 
         resp = await self.client.post(BASE_URL, data=data)
-        logger.debug(f"Got status {resp.status_code}, '{resp.text}'")
+        logger.debug(f"list_vms: Got status {resp.status_code}, '{resp.text}'")
         if not resp.is_success:
             return Result.error(
                 f"Getting list of vms: got status code {resp.status_code}, '{resp.text}'"
@@ -62,6 +62,9 @@ class CCApi:
         }
 
         resp = await self.client.post(BASE_URL, data=data)
+        logger.debug(
+            f"bandwidth_usage_v2: Got status {resp.status_code}, '{resp.text}'"
+        )
         if not resp.is_success:
             return Result.error(
                 f"Getting bandwidth usage: got status code {resp.status_code}, '{resp.text}'"

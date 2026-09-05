@@ -52,4 +52,4 @@ def _load() -> Config:
 
 
 CONFIG = _load()
-logger.debug(f"Loaded config settings:\n{CONFIG.settings}")
+logger.info(f"Loaded config settings:\n{CONFIG.settings}")
