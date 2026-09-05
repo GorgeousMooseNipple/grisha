@@ -43,25 +43,32 @@ async def setup(app: Application):
     logger.debug("Running global setup")
     cc_client = CCApi()
     app.bot_data["cc_client"] = cc_client
+    vm = await cc_client.vm_by_ip(CONFIG.creds.vm_ip)
+    if not vm:
+        raise RuntimeError("Failed to get info on our baby!")
+    app.bot_data["vm"] = vm
 
 
 async def teardown(app: Application):
     logger.debug("Running global teardown")
     cc_client: CCApi = app.bot_data.get("cc_client")
     if cc_client:
-        cc_client.shutdown()
+        await cc_client.shutdown()
 
 
 if __name__ == "__main__":
     app = (
         ApplicationBuilder()
         .token(CONFIG.creds.telegram_token)
-        .post_init(teardown)
+        .post_init(setup)
+        .post_stop(teardown)
         .build()
     )
 
     app.add_handler(handlers.commands.start_handler)
+    app.add_handler(handlers.commands.usage_handler)
     app.add_handler(handlers.commands.fallback_handler)
+
     app.add_handler(handlers.messages.fallback_message_handler)
 
     logger.info("Polling for updates...")

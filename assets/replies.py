@@ -26,3 +26,13 @@ CONFUSED_REPLIES = [
 ]
 
 UNKNOWN_COMMAND = "Я не знаю что с этим делать :("
+
+BOT_ERROR = [
+    "Oh Mist! Ошибка!",
+    "Произошел конфуз",
+]
+
+USAGE_REPLY = textwrap.dedent("""\
+        Сейчас использовано {percent}%
+        {used} из {quota}
+        """)

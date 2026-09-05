@@ -16,12 +16,14 @@ TIMEOUT = 10
 
 class CCApi:
     def __init__(self):
+        logger.debug("Initializing cc client...")
         self.client = httpx.AsyncClient(
             transport=httpx.AsyncHTTPTransport(retries=3),
             timeout=TIMEOUT,
         )
 
     async def shutdown(self):
+        logger.debug("Shutting down cc client...")
         await self.client.aclose()
 
     async def list_vms(self) -> Result[list[VmInfo]]:
