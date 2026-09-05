@@ -1,7 +1,6 @@
 import logging
 import random
 from typing import cast, Optional
-from datetime import date
 from telegram import Update
 from telegram.ext import (
     ContextTypes,
@@ -12,7 +11,8 @@ from telegram.ext import (
 from assets import replies
 from cc import CCApi, VmInfo
 from db import DbApi
-from db.model import YearMonth
+from db.model import YearMonth, User
+from utils.config import CONFIG
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,29 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Got /start command from: {user.username}({user.id})")
     greeting = replies.GREETINGS.format(name=user.first_name)
     await context.bot.send_message(user.id, text=greeting)
+
+    db: DbApi = context.bot_data["db"]
+    if await db.user_exists(user.id):
+        logger.info(f"{user} already saved to DB")
+        await context.bot.send_message(
+            user.id, text="Рад снова встретить! Willkommen zurück!"
+        )
+        return
+    try:
+        user = User(
+            id=user.id,
+            username=user.username or user.full_name,
+            name=user.full_name,
+            notify=False,
+            threshold=CONFIG.settings.default_threshold,
+        )
+        await db.insert_user(user)
+        logger.debug(f"Success creating user {user}")
+    except Exception as e:
+        logger.error(f"Failed to create user with {e}. User in question: {user}")
+        await context.bot.send_message(
+            user.id, text="Freund, что-то пошло не так с добавлением тебя в бд!!!"
+        )
 
 
 async def current_usage(update: Update, context: ContextTypes.DEFAULT_TYPE):

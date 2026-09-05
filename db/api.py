@@ -86,3 +86,20 @@ class DbApi:
         return await self._query_stats(
             where=f"WHERE year_month >= ?", params=(since_str,)
         )
+
+    async def insert_user(self, user: User):
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            await cursor.execute(
+                f"INSERT INTO {USERS_TABLE}(id, username, name, notify, threshold) VALUES(?, ?, ?, ?, ?)",
+                (user.id, user.username, user.name, user.notify, user.threshold),
+            )
+            await conn.commit()
+
+    async def user_exists(self, id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            cursor.row_factory = aiosqlite.Row
+            await cursor.execute(f"SELECT 1 FROM {USERS_TABLE} WHERE id = ?", (id,))
+            user = await cursor.fetchone()
+            return user is not None
