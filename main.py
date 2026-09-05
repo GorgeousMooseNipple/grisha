@@ -5,12 +5,13 @@ import handlers.messages
 from logging.handlers import RotatingFileHandler
 from telegram.ext import ApplicationBuilder
 from utils import CONFIG
-from cc import CCApi
-from db import DbApi
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
-log_fmt = logging.Formatter("%(module)s:%(lineno)s [%(levelname)s]: %(message)s")
+log_fmt = logging.Formatter(
+    "[%(asctime)s] %(module)s:%(lineno)s [%(levelname)s]: %(message)s"
+)
+fmt = logging.Formatter
 
 logger = logging.getLogger()
 logger.setLevel(log_level)
