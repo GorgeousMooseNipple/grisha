@@ -3,8 +3,9 @@ import logging
 import handlers.commands
 import handlers.messages
 from logging.handlers import RotatingFileHandler
-from telegram.ext import ApplicationBuilder
+from telegram.ext import ApplicationBuilder, Application
 from utils import CONFIG
+from cc import CCApi
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -38,8 +39,26 @@ logging.getLogger("aiosqlite").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
 
 
+async def setup(app: Application):
+    logger.debug("Running global setup")
+    cc_client = CCApi()
+    app.bot_data["cc_client"] = cc_client
+
+
+async def teardown(app: Application):
+    logger.debug("Running global teardown")
+    cc_client: CCApi = app.bot_data.get("cc_client")
+    if cc_client:
+        cc_client.shutdown()
+
+
 if __name__ == "__main__":
-    app = ApplicationBuilder().token(CONFIG.creds.telegram_token).build()
+    app = (
+        ApplicationBuilder()
+        .token(CONFIG.creds.telegram_token)
+        .post_init(teardown)
+        .build()
+    )
 
     app.add_handler(handlers.commands.start_handler)
     app.add_handler(handlers.commands.fallback_handler)
