@@ -47,3 +47,5 @@ USAGE_REPLY = textwrap.dedent("""\
         Сейчас использовано {percent}%
         {used} из {quota}
         """)
+
+IMAGE_REPLY = "Спасибо, повешу на стену!"

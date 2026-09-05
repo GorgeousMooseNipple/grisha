@@ -25,6 +25,7 @@ class Settings:
     init_sql: str = str(Path(__file__).parent.parent.joinpath("db/init.sql"))
     replies_file: str = str(Path(__file__).parent.parent.joinpath("replies.json"))
     log_file: str = "/tmp/grisha.log"
+    storage_path: str = str(Path.home().joinpath(".local/share/grisha"))
 
 
 @dataclass
@@ -53,3 +54,10 @@ def _load() -> Config:
 
 CONFIG = _load()
 logger.info(f"Loaded config settings:\n{CONFIG.settings}")
+
+try:
+    storage_path = Path(CONFIG.settings.storage_path)
+    if not storage_path.exists():
+        storage_path.mkdir(parents=True)
+except Exception as e:
+    logger.error(f"Failed to create storage with {e}")
