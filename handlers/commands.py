@@ -210,6 +210,75 @@ async def set_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(user.id, text=reply)
 
 
+async def enable_notifications(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"Notify update: {update}")
+    user = update.effective_user
+    if not user:
+        logger.warning("User not set for /notify command")
+        return
+    logger.info(f"Got /notify command from: {user.username}({user.id})")
+
+    db: DbApi = context.bot_data["db"]
+    existing_user = await db.user_by_id(user.id)
+    if not existing_user:
+        logger.error(f"{user} is not registered in DB")
+        await context.bot.send_message(
+            user.id, text="Подожди секунду, а я тебя точно знаю?"
+        )
+        return
+
+    if existing_user.notify:
+        logger.info(f"{existing_user} already enabled notifications")
+        await context.bot.send_message(
+            user.id, text="Уведомления уже включены! Ihre Gesundheit!"
+        )
+        return
+
+    try:
+        await db.enable_notifications(existing_user.id)
+        await context.bot.send_message(
+            user.id, text="Договорились, буду держать тебя в курсе)"
+        )
+    except Exception as e:
+        logger.error(f"Failed to enable notifications for {existing_user} with {e}")
+        reply = random.choice(replies.BOT_ERROR)
+        await context.bot.send_message(user.id, text=reply)
+
+
+async def shut_up_notifications(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"/shutup update: {update}")
+    user = update.effective_user
+    if not user:
+        logger.warning("User not set for /shutup command")
+        return
+    logger.info(f"Got /shutup command from: {user.username}({user.id})")
+
+    db: DbApi = context.bot_data["db"]
+    existing_user = await db.user_by_id(user.id)
+    if not existing_user:
+        logger.error(f"{user} is not registered in DB")
+        await context.bot.send_message(
+            user.id, text="Подожди секунду, а я тебя точно знаю?"
+        )
+        return
+
+    if not existing_user.notify:
+        logger.info(f"{existing_user} already disabled notifications")
+        await context.bot.send_message(user.id, text="Все, я уже заткнулся)")
+        return
+
+    try:
+        await db.disable_notifications(existing_user.id)
+        await context.bot.send_message(
+            user.id,
+            text="Без проблем, набери меня, если передумаешь) Oh Ich denke nur an Bier!",
+        )
+    except Exception as e:
+        logger.error(f"Failed to disable notifications for {existing_user} with {e}")
+        reply = random.choice(replies.BOT_ERROR)
+        await context.bot.send_message(user.id, text=reply)
+
+
 async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
     logger.debug(f"Fallback command update: {update}")
     user = update.effective_user
@@ -224,4 +293,6 @@ start_handler = CommandHandler("start", start)
 usage_handler = CommandHandler("usage", current_usage)
 stats_handler = CommandHandler("stats", stats)
 threshold_handler = CommandHandler("threshold", set_threshold)
+notify_handler = CommandHandler("notify", enable_notifications)
+shutup_handler = CommandHandler("shutup", shut_up_notifications)
 fallback_handler = MessageHandler(filters.COMMAND, fallback_command)

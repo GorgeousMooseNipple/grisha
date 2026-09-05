@@ -113,3 +113,17 @@ class DbApi:
             logger.debug(f"Executing query: '{query}'")
             await cursor.execute(query, (threshold, user_id))
             await conn.commit()
+
+    async def _set_notifications(self, user_id: int, enable: bool):
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            query = f"UPDATE {USERS_TABLE} SET notify = ? WHERE id = ?"
+            logger.debug(f"Executing query: '{query}'")
+            await cursor.execute(query, (enable, user_id))
+            await conn.commit()
+
+    async def enable_notifications(self, user_id: int):
+        await self._set_notifications(user_id, enable=True)
+
+    async def disable_notifications(self, user_id: int):
+        await self._set_notifications(user_id, enable=False)
