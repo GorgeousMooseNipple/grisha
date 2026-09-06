@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT NOT NULL,
     name TEXT NOT NULL,
     notify BOOLEAN NOT NULL CHECK (notify IN (0, 1)),
+    was_notified BOOLEAN NOT NULL CHECK (was_notified IN (0, 1)),
     threshold INTEGER NOT NULL
 );
 

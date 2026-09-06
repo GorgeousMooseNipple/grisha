@@ -11,6 +11,7 @@ class User(BaseModel):
     username: str
     name: str
     notify: bool
+    was_notified: bool = False
     threshold: int
 
 
@@ -21,6 +22,11 @@ class YearMonth(date):
 
     def __str__(self) -> str:
         return self.strftime(YEAR_MONTH_FMT)
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, date):
+            return other.year == self.year and other.month == self.month
+        return super().__eq__(other)
 
 
 class NetUsage(BaseModel):

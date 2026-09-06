@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Optional, Iterable
 from datetime import date
 
-from .model import User, NetUsage
+from .model import User, NetUsage, YearMonth
+from cc.model import BandwidthUsage
 
 
 logger = logging.getLogger(__name__)
@@ -91,8 +92,15 @@ class DbApi:
         async with aiosqlite.connect(self.db_path) as conn:
             cursor = await conn.cursor()
             await cursor.execute(
-                f"INSERT INTO {USERS_TABLE}(id, username, name, notify, threshold) VALUES(?, ?, ?, ?, ?)",
-                (user.id, user.username, user.name, user.notify, user.threshold),
+                f"INSERT INTO {USERS_TABLE}(id, username, name, notify, was_notified, threshold) VALUES(?, ?, ?, ?, ?, ?)",
+                (
+                    user.id,
+                    user.username,
+                    user.name,
+                    user.notify,
+                    False,
+                    user.threshold,
+                ),
             )
             await conn.commit()
 
@@ -109,7 +117,7 @@ class DbApi:
     async def set_threshold(self, user_id: int, threshold: int):
         async with aiosqlite.connect(self.db_path) as conn:
             cursor = await conn.cursor()
-            query = f"UPDATE {USERS_TABLE} SET threshold = ? WHERE id = ?"
+            query = f"UPDATE {USERS_TABLE} SET threshold = ?, was_notified = FALSE WHERE id = ?"
             logger.debug(f"Executing query: '{query}'")
             await cursor.execute(query, (threshold, user_id))
             await conn.commit()
@@ -117,7 +125,7 @@ class DbApi:
     async def _set_notifications(self, user_id: int, enable: bool):
         async with aiosqlite.connect(self.db_path) as conn:
             cursor = await conn.cursor()
-            query = f"UPDATE {USERS_TABLE} SET notify = ? WHERE id = ?"
+            query = f"UPDATE {USERS_TABLE} SET notify = ?, was_notified = FALSE WHERE id = ?"
             logger.debug(f"Executing query: '{query}'")
             await cursor.execute(query, (enable, user_id))
             await conn.commit()
@@ -132,12 +140,56 @@ class DbApi:
         async with aiosqlite.connect(self.db_path) as conn:
             cursor = await conn.cursor()
             cursor.row_factory = aiosqlite.Row
-            query = (
-                f"SELECT * FROM {USERS_TABLE} WHERE notify = TRUE AND threshold <= ?"
-            )
+            query = f"SELECT * FROM {USERS_TABLE} WHERE notify = TRUE AND was_notified = FALSE AND threshold <= ?"
             logger.debug(
                 f"Executing query '{query}' with current usage at {current_usage}"
             )
             await cursor.execute(query, (round(current_usage),))
             usage_rows = await cursor.fetchall()
             return [User(**row) for row in usage_rows]
+
+    async def set_notified(self, user_id: int):
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            query = f"UPDATE {USERS_TABLE} SET was_notified = TRUE WHERE id = ?"
+            logger.debug(f"Executing query: '{query}'")
+            await cursor.execute(query, (user_id,))
+            await conn.commit()
+
+    async def last_usage(self) -> Optional[NetUsage]:
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            cursor.row_factory = aiosqlite.Row
+            query = f"SELECT * FROM {USAGE_TABLE} ORDER BY year_month DESC LIMIT 1"
+            logger.debug(f"Executing query: '{query}'")
+            await cursor.execute(query)
+            usage = await cursor.fetchone()
+            return NetUsage(**usage) if usage else None
+
+    async def update_usage(self, record_id: int, usage: BandwidthUsage):
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            query = f"UPDATE {USAGE_TABLE} SET quota = ?, used = ? WHERE id = ?"
+            logger.debug(f"Updating usage query: '{query}'")
+            await cursor.execute(query, (usage.quota, usage.used, record_id))
+            await conn.commit()
+
+    async def create_usage_record(self, usage: BandwidthUsage):
+        year_month = YearMonth.today()
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            query = (
+                f"INSERT INTO {USAGE_TABLE}(year_month, quota, used) VALUES(?, ?, ?)"
+            )
+            params = (str(year_month), usage.quota, usage.used)
+            logger.debug(f"Creating usage record: '{query}' with params {params}")
+            await cursor.execute(query, params)
+            await conn.commit()
+
+    async def reset_notified_statuses(self):
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            query = f"UPDATE {USERS_TABLE} SET was_notified = FALSE"
+            logger.debug(f"Resetting 'was_notified' for all users: '{query}'")
+            await cursor.execute(query)
+            await conn.commit()

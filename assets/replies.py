@@ -49,3 +49,9 @@ USAGE_REPLY = textwrap.dedent("""\
         """)
 
 IMAGE_REPLY = "Спасибо, повешу на стену!"
+
+USAGE_NOTIFICATION = textwrap.dedent("""\
+        Achtung!
+        Текущее использование трафика {percent}%!
+        {used} из {quota}
+        """)

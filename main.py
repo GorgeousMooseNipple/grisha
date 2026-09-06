@@ -7,6 +7,7 @@ from telegram.ext import ApplicationBuilder, Application
 from utils import CONFIG
 from cc import CCApi
 from db import DbApi
+from jobs.notifications import update_usage
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -54,6 +55,14 @@ async def setup(app: Application):
     db = DbApi()
     await db.init_db(CONFIG.settings.init_sql)
     app.bot_data["db"] = db
+
+    assert app.job_queue, "JobQueue should be iniialized at this point"
+    app.job_queue.run_repeating(
+        update_usage,
+        interval=CONFIG.settings.usage_polling_interval,
+        first=10,
+        name="usage_polling",
+    )
 
 
 async def teardown(app: Application):

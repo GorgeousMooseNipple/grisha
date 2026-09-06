@@ -26,6 +26,7 @@ class Settings:
     replies_file: str = str(Path(__file__).parent.parent.joinpath("replies.json"))
     log_file: str = "/tmp/grisha.log"
     storage_path: str = str(Path.home().joinpath(".local/share/grisha"))
+    usage_polling_interval: int = 300
 
 
 @dataclass
