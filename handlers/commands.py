@@ -119,6 +119,13 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text=f"Freund, я не разобрал эту часть: {args}. Zu kompliziert!",
             )
 
+    if limit is not None and limit < 1:
+        logger.error(f"Stats given invalid limit {limit}")
+        await context.bot.send_message(
+            user.id, text=f"Это должно быть положительное целое число, а не {limit}))"
+        )
+        return
+
     db = cast(DbApi, context.bot_data.get("db"))
     try:
         if since:
