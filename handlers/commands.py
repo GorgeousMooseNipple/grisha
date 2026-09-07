@@ -1,11 +1,13 @@
 import logging
 import random
 from typing import cast, Optional
+from enum import Enum
 from telegram import Update
 from telegram.ext import (
     ContextTypes,
     CommandHandler,
     MessageHandler,
+    ConversationHandler,
     filters,
 )
 from assets import replies
@@ -18,8 +20,34 @@ from utils.config import CONFIG
 logger = logging.getLogger(__name__)
 
 
+class CommandState(Enum):
+    WAITING_INPUT = 1
+
+
+async def cancel(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"Got /cancel command {update}")
+    message = update.effective_message
+    if not message:
+        logger.warning("message not available for /cancel command")
+        return
+
+    await message.reply_text("Окей, поговорим о чем-нибудь другом) ...пиво?")
+    return ConversationHandler.END
+
+
+async def end_conversation(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    message = update.effective_message
+    if not user or not message:
+        return ConversationHandler.END
+    logger.debug(f"{user.username}({user.id}) went off the script with '{message}'")
+
+    await message.reply_text("Окей)")
+    return ConversationHandler.END
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.debug(f"Start update: {update}")
+    logger.debug(f"/start update: {update}")
     user = update.effective_user
     if not user:
         logger.warning("User not set for /start command")
@@ -53,7 +81,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def current_usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.debug(f"Usage update: {update}")
+    logger.debug(f"/usage update: {update}")
     user = update.effective_user
     if not user:
         logger.warning("User not set for /usage command")
@@ -94,7 +122,7 @@ def _parse_stats_arg(arg: str) -> tuple[Optional[int], Optional[YearMonth]]:
 
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.debug(f"Stats update: {update}")
+    logger.debug(f"/stats update: {update}")
     user = update.effective_user
     if not user:
         logger.warning("User not set for /stats command")
@@ -157,52 +185,63 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(user.id, text=reply)
 
 
-async def set_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.debug(f"Threshold update: {update}")
+async def threshold_update(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"/threshold update: {update}")
     user = update.effective_user
-    if not user:
-        logger.warning("User not set for /threshold command")
+    message = update.effective_message
+    if not user or not message:
+        logger.warning("User or message is not set for /threshold command")
         return
 
-    args = context.args
-    logger.info(
-        f"Got /threshold command from: {user.username}({user.id}) with args: {args}"
+    logger.info(f"Got /threshold command from: {user.username}({user.id})")
+    await message.reply_text(
+        text="Окей, на скольки процентах тебя уведомлять? Жду от тебя целое число от 1 до 99"
     )
-    if not args:
-        logger.warning("/threshold called with no arguments")
-        await context.bot.send_message(
-            user.id, text="С этой командой нужно передать число от 1 до 99!"
-        )
-        return
 
-    first, *rest = args
+    return CommandState.WAITING_INPUT
+
+
+async def process_threshold_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"Processing threshold input {update}")
+    user = update.effective_user
+    message = update.effective_message
+    if not user or not message:
+        logger.warning("User or message is not set for threshold input")
+        return ConversationHandler.END
+
+    if not message.text:
+        await message.reply_text("...")
+        return ConversationHandler.END
+
+    logger.info(
+        f"Processing threshold input: {user.username}({user.id}) sent '{message.text}'"
+    )
+
+    first, *rest = message.text.split()
     try:
+        first = first.rstrip("%")
         new_threshold = int(first)
     except ValueError:
         logger.warning(f"/threshold expects integer, got {first}")
-        await context.bot.send_message(
-            user.id, text=f"'{first}'?? Was?) И тебе {first})"
-        )
-        return
+        await message.reply_text(text=f"'{first}'?? Was?) И тебе {first})")
+        return ConversationHandler.END
 
     if new_threshold < 1 or new_threshold > 99:
         logger.warning(f"Invalid threshold {new_threshold} given")
-        await context.bot.send_message(user.id, text=f"Число от 1 до 99, bitte)")
-        return
+        await message.reply_text(text=f"Число от 1 до 99, bitte)")
+        return ConversationHandler.END
 
     db: DbApi = context.bot_data["db"]
     existing_user = await db.user_by_id(user.id)
     if not existing_user:
         logger.error(f"/threshold request from unrecognized {user}")
         await context.bot.send_message(user.id, text=f"Подожди, а ты как сюда попал?!")
-        return
+        return ConversationHandler.END
 
     if new_threshold == existing_user.threshold:
-        logger.info(f"/threshold request from unrecognized {user}")
-        await context.bot.send_message(
-            user.id, text=f"Schönheit! Мне даже делать ничего не пришлось)"
-        )
-        return
+        logger.info(f"Threshold unchanged for {user}")
+        await message.reply_text(text=f"Schönheit! Мне даже делать ничего не пришлось)")
+        return ConversationHandler.END
 
     try:
         await db.set_threshold(existing_user.id, new_threshold)
@@ -214,7 +253,9 @@ async def set_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Failed to set threshold to {new_threshold} for {existing_user} with {e}"
         )
         reply = random.choice(replies.BOT_ERROR)
-    await context.bot.send_message(user.id, text=reply)
+
+    await message.reply_text(text=reply)
+    return ConversationHandler.END
 
 
 async def enable_notifications(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -299,7 +340,19 @@ async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
 start_handler = CommandHandler("start", start)
 usage_handler = CommandHandler("usage", current_usage)
 stats_handler = CommandHandler("stats", stats)
-threshold_handler = CommandHandler("threshold", set_threshold)
+threshold_handler = ConversationHandler(
+    entry_points=[CommandHandler("threshold", threshold_update)],
+    states={
+        CommandState.WAITING_INPUT: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, process_threshold_input)
+        ]
+    },
+    fallbacks=[
+        CommandHandler("cancel", cancel),
+        MessageHandler(filters.TEXT | filters.COMMAND, end_conversation),
+    ],
+    conversation_timeout=60,
+)
 notify_handler = CommandHandler("notify", enable_notifications)
 shutup_handler = CommandHandler("shutup", shut_up_notifications)
 fallback_handler = MessageHandler(filters.COMMAND, fallback_command)
