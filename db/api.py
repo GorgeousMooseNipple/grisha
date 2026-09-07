@@ -136,7 +136,7 @@ class DbApi:
     async def disable_notifications(self, user_id: int):
         await self._set_notifications(user_id, enable=False)
 
-    async def should_notify(self, current_usage: float) -> list[User]:
+    async def should_notify_usage(self, current_usage: float) -> list[User]:
         async with aiosqlite.connect(self.db_path) as conn:
             cursor = await conn.cursor()
             cursor.row_factory = aiosqlite.Row
@@ -145,6 +145,16 @@ class DbApi:
                 f"Executing query '{query}' with current usage at {current_usage}"
             )
             await cursor.execute(query, (round(current_usage),))
+            usage_rows = await cursor.fetchall()
+            return [User(**row) for row in usage_rows]
+
+    async def with_notifiations_enabled(self) -> list[User]:
+        async with aiosqlite.connect(self.db_path) as conn:
+            cursor = await conn.cursor()
+            cursor.row_factory = aiosqlite.Row
+            query = f"SELECT * FROM {USERS_TABLE} WHERE notify = TRUE"
+            logger.debug(f"Executing query '{query}'")
+            await cursor.execute(query)
             usage_rows = await cursor.fetchall()
             return [User(**row) for row in usage_rows]
 

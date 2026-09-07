@@ -39,7 +39,7 @@ async def update_usage(context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Failed to update usage record with {e}")
 
     try:
-        users = await db.should_notify(usage.used_percentage)
+        users = await db.should_notify_usage(usage.used_percentage)
         logger.info(f"Should notify {len(users)} users")
     except Exception as e:
         logger.error(f"Failed to fetch users we should notify from DB with {e}")
