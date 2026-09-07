@@ -5,23 +5,23 @@ import handlers.messages
 from logging.handlers import RotatingFileHandler
 from telegram.ext import ApplicationBuilder, Application
 from utils import CONFIG
+from utils.logs import ColorFormatter
 from cc import CCApi
 from db import DbApi
 from jobs.notifications import update_usage
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
-log_fmt = logging.Formatter(
-    "[%(asctime)s] %(module)s:%(lineno)s [%(levelname)s]: %(message)s"
-)
-fmt = logging.Formatter
+log_fmt = "[%(asctime)s] %(module)s:%(lineno)s [%(levelname)s]: %(message)s"
+stream_formatter = ColorFormatter(log_fmt)
+file_formatter = logging.Formatter(log_fmt)
 
 logger = logging.getLogger()
 logger.setLevel(log_level)
 
 sh = logging.StreamHandler()
 sh.setLevel(log_level)
-sh.setFormatter(log_fmt)
+sh.setFormatter(stream_formatter)
 
 fh = RotatingFileHandler(
     filename=CONFIG.settings.log_file,
@@ -30,7 +30,7 @@ fh = RotatingFileHandler(
     encoding="utf-8",
 )
 fh.setLevel(log_level)
-fh.setFormatter(log_fmt)
+fh.setFormatter(file_formatter)
 
 logger.addHandler(sh)
 logger.addHandler(fh)
