@@ -121,38 +121,47 @@ def _parse_stats_arg(arg: str) -> tuple[Optional[int], Optional[YearMonth]]:
     return None, YearMonth.from_str(arg)
 
 
-async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def stats_init(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.debug(f"/stats update: {update}")
     user = update.effective_user
     if not user:
         logger.warning("User not set for /stats command")
-        return
+        return ConversationHandler.END
 
-    args = context.args
-    logger.info(
-        f"Got /stats command from: {user.username}({user.id}) with args: {args}"
+    logger.info(f"Got /stats command from: {user.username}({user.id})")
+    await context.bot.send_message(
+        user.id,
+        text="Хорошо, за сколько прошлых месяцев стату? Дай мне число или напиши начиная с какого месяца, например '2025-08'",
     )
+    return CommandState.WAITING_INPUT
+
+
+async def process_stats_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    message = update.effective_message
+    if not user or not message:
+        logger.warning("User or message is not set for /stats input")
+        return ConversationHandler.END
 
     limit = 6
     since = None
     unhandled = []
-    if args:
-        first, *unhandled = args
+
+    if message.text:
+        first, *unhandled = message.text.split()
         try:
             limit, since = _parse_stats_arg(first)
         except Exception as e:
-            logger.error(f"Failed to parse stats args: {args} with {e}")
-            await context.bot.send_message(
-                user.id,
-                text=f"Freund, я не разобрал эту часть: {args}. Zu kompliziert!",
-            )
+            logger.error(f"Failed to parse stats args: '{message.text}' with {e}")
+            await message.reply_text(text=f"Freund, я не понял :( Zu kompliziert!")
+            return ConversationHandler.END
 
     if limit is not None and limit < 1:
         logger.error(f"Stats given invalid limit {limit}")
-        await context.bot.send_message(
-            user.id, text=f"Это должно быть положительное целое число, а не {limit}))"
+        await message.reply_text(
+            text=f"Это должно быть положительное целое число, а не {limit}))"
         )
-        return
+        return ConversationHandler.END
 
     db = cast(DbApi, context.bot_data.get("db"))
     try:
@@ -178,11 +187,12 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply += (
                 f"P.S. Entschuldigung, я не понял к чему было вот это: '{unhandled}'"
             )
-        await context.bot.send_message(user.id, text=reply)
     except Exception as e:
         logger.error(f"Failed to get usage stats from DB with {e}")
         reply = random.choice(replies.BOT_ERROR)
-        await context.bot.send_message(user.id, text=reply)
+
+    await message.reply_text(reply)
+    return ConversationHandler.END
 
 
 async def threshold_update(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -339,7 +349,19 @@ async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 start_handler = CommandHandler("start", start)
 usage_handler = CommandHandler("usage", current_usage)
-stats_handler = CommandHandler("stats", stats)
+stats_handler = ConversationHandler(
+    entry_points=[CommandHandler("stats", stats_init)],
+    states={
+        CommandState.WAITING_INPUT: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, process_stats_input)
+        ]
+    },
+    fallbacks=[
+        CommandHandler("cancel", cancel),
+        MessageHandler(filters.TEXT | filters.COMMAND, end_conversation),
+    ],
+    conversation_timeout=60,
+)
 threshold_handler = ConversationHandler(
     entry_points=[CommandHandler("threshold", threshold_update)],
     states={
