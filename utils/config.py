@@ -27,6 +27,7 @@ class Settings:
     log_file: str = "/tmp/grisha.log"
     storage_path: str = str(Path.home().joinpath(".local/share/grisha"))
     usage_polling_interval: int = 300
+    stats_padding: int = 11
 
 
 @dataclass

@@ -10,6 +10,7 @@ from telegram.ext import (
     ConversationHandler,
     filters,
 )
+from telegram.constants import ParseMode
 from assets import replies
 from cc import CCApi, VmInfo
 from db import DbApi
@@ -172,8 +173,9 @@ async def process_stats_input(update: Update, context: ContextTypes.DEFAULT_TYPE
             reply = f"Статы за последние {limit} месяцев:\n"
             stats = await db.stats(limit)
 
+        pad = CONFIG.settings.stats_padding
         stats_list = [
-            f"{stat.year_month}: {stat.used_pretty()} из {stat.quota_pretty()}\n"
+            f"{stat.year_month}: {stat.used_pretty():<{pad}} из {stat.quota_pretty():<{pad}}\n"
             for stat in stats
         ]
 
@@ -181,17 +183,18 @@ async def process_stats_input(update: Update, context: ContextTypes.DEFAULT_TYPE
             reply = "Oh nein! Кажется я ничего не нашел "
             reply += f"с {since} :C" if since else f"за последние {limit} месяцев :C\n"
         else:
-            reply += "".join(stats_list)
+            reply += f"<pre>{''.join(stats_list)}</pre>"
 
         if unhandled:
             reply += (
                 f"P.S. Entschuldigung, я не понял к чему было вот это: '{unhandled}'"
             )
+        await message.reply_text(reply, parse_mode=ParseMode.HTML)
     except Exception as e:
         logger.error(f"Failed to get usage stats from DB with {e}")
         reply = random.choice(replies.BOT_ERROR)
+        await message.reply_text(reply)
 
-    await message.reply_text(reply)
     return ConversationHandler.END
 
 

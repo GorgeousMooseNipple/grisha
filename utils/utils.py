@@ -3,7 +3,7 @@ def mb_pretty(mb: float) -> str:
     value = mb * 1024.0
 
     for unit in units:
-        pretty = f"{value:.2f} {unit}"
+        pretty = f"{value:<7.2f} {unit}"
         if abs(value) < 1024:
             break
         value /= 1024.0
