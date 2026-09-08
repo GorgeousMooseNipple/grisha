@@ -1,12 +1,12 @@
 import textwrap
 
 GREETINGS = textwrap.dedent("""\
-            Guten Tag!
-            Меня зовут Гриша. Schön, dich kennenzulernen, {name}! Присаживайся, здесь viele свободных мест.
-            Давай расскажу о себе: Я живу в далекой Deutschland, наслаждаюсь пивом и отлично провожу время!
-            Я подрабатываю Überbringer, так что если хочешь, буду держать тебя в курсе событий у нас тут :)
-            Oh ja! Willkommen!
-            """)
+    Guten Tag!
+    Меня зовут Гриша. Schön, dich kennenzulernen, {name}! Присаживайся, здесь viele свободных мест.
+    Давай расскажу о себе: Я живу в далекой Deutschland, наслаждаюсь пивом и отлично провожу время!
+    Я подрабатываю Überbringer, так что если хочешь, буду держать тебя в курсе событий у нас тут :)
+    Oh ja! Willkommen!
+    """)
 
 CONFUSED_REPLIES = [
     textwrap.dedent(reply)
@@ -44,19 +44,26 @@ BOT_ERROR = [
 ]
 
 USAGE_REPLY = textwrap.dedent("""\
-        Сейчас использовано {percent}%
-        {used} из {quota}
-        """)
+    Сейчас использовано {percent}%
+    {used} из {quota}
+    """)
 
 IMAGE_REPLY = "Спасибо, повешу на стену!"
 
 USAGE_NOTIFICATION = textwrap.dedent("""\
-        Achtung!
-        Текущее использование трафика {percent}%!
-        {used} из {quota}
-        """)
+    Achtung!
+    Текущее использование трафика {percent}%!
+    {used} из {quota}
+    """)
 
 THRESHOLD_PROMPT = textwrap.dedent("""\
-        Окей, на скольки процентах тебя уведомлять? Сейчас у тебя {current}%.
-        Жду от тебя целое число от 1 до 99!
-        """)
+    Окей, на скольки процентах тебя уведомлять? Сейчас у тебя {current}%.
+    Жду от тебя целое число от 1 до 99!
+    """)
+
+UNKNOWN_USER = [
+    "Не нашел тебя в своем дневничке)",
+    "Подожди секунду, а я тебя точно знаю?",
+    "Подожди секунду, а мы точно знакомы?",
+    "Подожди, а ты как сюда попал!?",
+]

@@ -210,8 +210,9 @@ async def threshold_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db: DbApi = context.bot_data["db"]
     existing_user = await db.user_by_id(user.id)
     if not existing_user:
-        logger.error(f"/threshold {user} does not exist in DB")
-        await message.reply_text("Не нашел тебя в своем дневничке)")
+        logger.error(f"/threshold unrecognized user: {user}")
+        reply = random.choice(replies.UNKNOWN_USER)
+        await message.reply_text(reply)
         return ConversationHandler.END
     logger.debug(f"User: {existing_user}")
 
@@ -254,8 +255,9 @@ async def process_threshold_input(update: Update, context: ContextTypes.DEFAULT_
     db: DbApi = context.bot_data["db"]
     existing_user = await db.user_by_id(user.id)
     if not existing_user:
-        logger.error(f"/threshold request from unrecognized {user}")
-        await context.bot.send_message(user.id, text=f"Подожди, а ты как сюда попал?!")
+        logger.error(f"/threshold prompt from unrecognized user: {user}")
+        reply = random.choice(replies.UNKNOWN_USER)
+        await message.reply_text(reply)
         return ConversationHandler.END
 
     if new_threshold == existing_user.threshold:
@@ -265,7 +267,7 @@ async def process_threshold_input(update: Update, context: ContextTypes.DEFAULT_
 
     try:
         await db.set_threshold(existing_user.id, new_threshold)
-        reply = f"Готово! Пришлю тебе уведомление если использование трафика будет выше {new_threshold}%!\n"
+        reply = f"Договорились! Пришлю тебе уведомление, если использование трафика будет выше {new_threshold}%!\n"
         if rest:
             reply += f"P.S. а вот как с этим быть я не понял: '{' '.join(rest)}'"
     except Exception as e:
@@ -279,7 +281,7 @@ async def process_threshold_input(update: Update, context: ContextTypes.DEFAULT_
 
 
 async def enable_notifications(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.debug(f"Notify update: {update}")
+    logger.debug(f"/notify update: {update}")
     user = update.effective_user
     if not user:
         logger.warning("User not set for /notify command")
@@ -289,10 +291,9 @@ async def enable_notifications(update: Update, context: ContextTypes.DEFAULT_TYP
     db: DbApi = context.bot_data["db"]
     existing_user = await db.user_by_id(user.id)
     if not existing_user:
-        logger.error(f"{user} is not registered in DB")
-        await context.bot.send_message(
-            user.id, text="Подожди секунду, а я тебя точно знаю?"
-        )
+        logger.error(f"/notify from unrecognized user: {user}")
+        reply = random.choice(replies.UNKNOWN_USER)
+        await context.bot.send_message(user.id, text=reply)
         return
 
     if existing_user.notify:
@@ -324,10 +325,9 @@ async def shut_up_notifications(update: Update, context: ContextTypes.DEFAULT_TY
     db: DbApi = context.bot_data["db"]
     existing_user = await db.user_by_id(user.id)
     if not existing_user:
-        logger.error(f"{user} is not registered in DB")
-        await context.bot.send_message(
-            user.id, text="Подожди секунду, а я тебя точно знаю?"
-        )
+        logger.error(f"/shutup from unrecognized user: {user}")
+        reply = random.choice(replies.UNKNOWN_USER)
+        await context.bot.send_message(user.id, text=reply)
         return
 
     if not existing_user.notify:
