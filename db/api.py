@@ -3,8 +3,9 @@ import aiosqlite
 import math
 from utils.config import CONFIG
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Optional, Iterable, AsyncGenerator
 from datetime import date
+from contextlib import asynccontextmanager
 
 from .model import User, NetUsage, YearMonth
 from cc.model import BandwidthUsage
@@ -38,12 +39,23 @@ class DbApi:
             logger.info(f"Using '{init_script}' to initialize DB")
             await conn.executescript(init_script)
 
-    @property
-    async def _connection(self) -> aiosqlite.Connection:
-        connection = aiosqlite.connect(self.db_path)
+    @asynccontextmanager
+    async def _connection(self) -> AsyncGenerator[aiosqlite.Connection]:
+        connection = await aiosqlite.connect(self.db_path)
         connection.row_factory = aiosqlite.Row
         await connection.set_trace_callback(logger.debug)
-        return connection
+        try:
+            yield connection
+        finally:
+            await connection.close()
+
+    @asynccontextmanager
+    async def _transaction(self, connection: aiosqlite.Connection):
+        try:
+            yield
+            await connection.commit()
+        except Exception:
+            await connection.rollback()
 
     async def _query_users(
         self, where: str = "", params: Optional[Iterable] = None
@@ -51,7 +63,7 @@ class DbApi:
         query = f"SELECT * FROM {USERS_TABLE}"
         if where:
             query = f"{query} {where}"
-        async with await self._connection as conn:
+        async with self._connection() as conn:
             cursor = await conn.execute(query, params)
             user_rows = await cursor.fetchall()
             users = [User(**row) for row in user_rows]
@@ -68,7 +80,7 @@ class DbApi:
 
     async def user_by_id(self, id: int) -> Optional[User]:
         logger.debug(f"Getting user with id = {id}")
-        async with await self._connection as conn:
+        async with self._connection() as conn:
             query = f"SELECT * FROM {USERS_TABLE} WHERE id = ?"
             cursor = await conn.execute(query, (id,))
             user = await cursor.fetchone()
@@ -76,8 +88,8 @@ class DbApi:
 
     async def insert_user(self, user: User):
         logger.debug(f"Creating user {user}")
-        async with await self._connection as conn:
-            async with conn:
+        async with self._connection() as conn:
+            async with self._transaction(conn):
                 await conn.execute(
                     f"INSERT INTO {USERS_TABLE}(id, username, name, notify, was_notified, threshold) VALUES(?, ?, ?, ?, ?, ?)",
                     (
@@ -92,14 +104,14 @@ class DbApi:
 
     async def set_threshold(self, user_id: int, threshold: int):
         logger.debug(f"Setting threshold to {threshold}% for user with id = {user_id}")
-        async with await self._connection as conn:
-            async with conn:
+        async with self._connection() as conn:
+            async with self._transaction(conn):
                 query = f"UPDATE {USERS_TABLE} SET threshold = ?, was_notified = FALSE WHERE id = ?"
                 await conn.execute(query, (threshold, user_id))
 
     async def _set_notifications(self, user_id: int, enable: bool):
-        async with await self._connection as conn:
-            async with conn:
+        async with self._connection() as conn:
+            async with self._transaction(conn):
                 query = f"UPDATE {USERS_TABLE} SET notify = ?, was_notified = FALSE WHERE id = ?"
                 await conn.execute(query, (enable, user_id))
 
@@ -113,21 +125,21 @@ class DbApi:
 
     async def set_notified(self, user_id: int):
         logger.debug(f"Mark user with id = {user_id} as already notified")
-        async with await self._connection as conn:
-            async with conn:
+        async with self._connection() as conn:
+            async with self._transaction(conn):
                 query = f"UPDATE {USERS_TABLE} SET was_notified = TRUE WHERE id = ?"
                 await conn.execute(query, (user_id,))
 
     async def reset_notified_statuses(self):
         logger.debug(f"Resetting 'was_notified' for all users")
         query = f"UPDATE {USERS_TABLE} SET was_notified = FALSE"
-        async with await self._connection as conn:
-            async with conn:
+        async with self._connection() as conn:
+            async with self._transaction(conn):
                 await conn.execute(query)
 
     async def with_notifiations_enabled(self) -> list[User]:
         logger.debug("Getting users with notifications enabled")
-        async with await self._connection as conn:
+        async with self._connection() as conn:
             query = f"SELECT * FROM {USERS_TABLE} WHERE notify = TRUE"
             cursor = await conn.execute(query)
             usage_rows = await cursor.fetchall()
@@ -137,7 +149,7 @@ class DbApi:
         logger.debug(
             f"Getting users we should notify with current usage at {current_usage}%"
         )
-        async with await self._connection as conn:
+        async with self._connection() as conn:
             query = f"SELECT * FROM {USERS_TABLE} WHERE notify = TRUE AND was_notified = FALSE AND threshold <= ?"
             cursor = await conn.execute(query, (math.floor(current_usage),))
             usage_rows = await cursor.fetchall()
@@ -155,7 +167,7 @@ class DbApi:
         query = f"{query} ORDER BY year_month DESC"
         if limit:
             query = f"{query} LIMIT {limit}"
-        async with await self._connection as conn:
+        async with self._connection() as conn:
             cursor = await conn.execute(query, params)
             usage_rows = await cursor.fetchall()
             stats = [NetUsage(**row) for row in usage_rows]
@@ -175,7 +187,7 @@ class DbApi:
 
     async def last_usage(self) -> Optional[NetUsage]:
         logger.debug("Getting latest net usage record")
-        async with await self._connection as conn:
+        async with self._connection() as conn:
             query = f"SELECT * FROM {USAGE_TABLE} ORDER BY year_month DESC LIMIT 1"
             cursor = await conn.execute(query)
             usage = await cursor.fetchone()
@@ -184,17 +196,17 @@ class DbApi:
     async def create_usage_record(self, usage: BandwidthUsage):
         logger.debug(f"Creating new usage record from {usage}")
         year_month = YearMonth.today()
-        async with await self._connection as conn:
+        async with self._connection() as conn:
             query = (
                 f"INSERT INTO {USAGE_TABLE}(year_month, quota, used) VALUES(?, ?, ?)"
             )
             params = (str(year_month), usage.quota, usage.used)
-            async with conn:
+            async with self._transaction(conn):
                 await conn.execute(query, params)
 
     async def update_usage(self, record_id: int, usage: BandwidthUsage):
         logger.debug(f"Updatig usage to {usage} for record with id = {record_id}")
-        async with await self._connection as conn:
+        async with self._connection() as conn:
             query = f"UPDATE {USAGE_TABLE} SET quota = ?, used = ? WHERE id = ?"
-            async with conn:
+            async with self._transaction(conn):
                 await conn.execute(query, (usage.quota, usage.used, record_id))
