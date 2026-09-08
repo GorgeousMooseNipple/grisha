@@ -198,18 +198,25 @@ async def process_stats_input(update: Update, context: ContextTypes.DEFAULT_TYPE
     return ConversationHandler.END
 
 
-async def threshold_update(update: Update, _: ContextTypes.DEFAULT_TYPE):
+async def threshold_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.debug(f"/threshold update: {update}")
     user = update.effective_user
     message = update.effective_message
     if not user or not message:
         logger.warning("User or message is not set for /threshold command")
-        return
-
+        return ConversationHandler.END
     logger.info(f"Got /threshold command from: {user.username}({user.id})")
-    await message.reply_text(
-        text="Окей, на скольки процентах тебя уведомлять? Жду от тебя целое число от 1 до 99"
-    )
+
+    db: DbApi = context.bot_data["db"]
+    existing_user = await db.user_by_id(user.id)
+    if not existing_user:
+        logger.error(f"/threshold {user} does not exist in DB")
+        await message.reply_text("Не нашел тебя в своем дневничке)")
+        return ConversationHandler.END
+    logger.debug(f"User: {existing_user}")
+
+    reply = replies.THRESHOLD_PROMPT.format(current=existing_user.threshold)
+    await message.reply_text(reply)
 
     return CommandState.WAITING_INPUT
 

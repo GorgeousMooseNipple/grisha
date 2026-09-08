@@ -55,3 +55,8 @@ USAGE_NOTIFICATION = textwrap.dedent("""\
         Текущее использование трафика {percent}%!
         {used} из {quota}
         """)
+
+THRESHOLD_PROMPT = textwrap.dedent("""\
+        Окей, на скольки процентах тебя уведомлять? Сейчас у тебя {current}%.
+        Жду от тебя целое число от 1 до 99!
+        """)
