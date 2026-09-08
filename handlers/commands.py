@@ -73,7 +73,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             threshold=CONFIG.settings.default_threshold,
         )
         await db.insert_user(user)
-        logger.debug(f"Success creating user {user}")
+        logger.info(f"Success creating user {user}")
     except Exception as e:
         logger.error(f"Failed to create user with {e}. User in question: {user}")
         await context.bot.send_message(
@@ -214,7 +214,7 @@ async def threshold_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply = random.choice(replies.UNKNOWN_USER)
         await message.reply_text(reply)
         return ConversationHandler.END
-    logger.debug(f"User: {existing_user}")
+    logger.debug(f"/threshold for: {existing_user}")
 
     reply = replies.THRESHOLD_PROMPT.format(current=existing_user.threshold)
     await message.reply_text(reply)
@@ -295,9 +295,10 @@ async def enable_notifications(update: Update, context: ContextTypes.DEFAULT_TYP
         reply = random.choice(replies.UNKNOWN_USER)
         await context.bot.send_message(user.id, text=reply)
         return
+    logger.debug(f"Enabling notifications for {existing_user}")
 
     if existing_user.notify:
-        logger.info(f"{existing_user} already enabled notifications")
+        logger.info(f"{existing_user} has already enabled notifications")
         await context.bot.send_message(
             user.id, text="Уведомления уже включены! Ihre Gesundheit!"
         )
@@ -329,6 +330,7 @@ async def shut_up_notifications(update: Update, context: ContextTypes.DEFAULT_TY
         reply = random.choice(replies.UNKNOWN_USER)
         await context.bot.send_message(user.id, text=reply)
         return
+    logger.debug(f"Disabling notifications for {existing_user}")
 
     if not existing_user.notify:
         logger.info(f"{existing_user} already disabled notifications")

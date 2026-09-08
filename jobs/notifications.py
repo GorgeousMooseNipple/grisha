@@ -32,7 +32,7 @@ async def update_usage(context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Failed to create usage record for {year_month} with {e}")
     else:
-        logger.info(f"Updating usage record in DB for {year_month}")
+        logger.debug(f"Current latest usage record: {last_usage_record}")
         try:
             await db.update_usage(last_usage_record.id, usage)
         except Exception as e:
@@ -40,13 +40,12 @@ async def update_usage(context: ContextTypes.DEFAULT_TYPE):
 
     try:
         users = await db.should_notify_usage(usage.used_percentage)
-        logger.info(f"Should notify {len(users)} users")
     except Exception as e:
         logger.error(f"Failed to fetch users we should notify from DB with {e}")
         return
 
+    logger.info(f"Sending usage notification to {len(users)} users")
     for user in users:
-        logger.debug(f"Sending usage notification to {user}")
         try:
             notification = replies.USAGE_NOTIFICATION.format(
                 percent=round(usage.used_percentage, 2),
@@ -55,5 +54,6 @@ async def update_usage(context: ContextTypes.DEFAULT_TYPE):
             )
             await context.bot.send_message(user.id, text=notification)
             await db.set_notified(user.id)
+            logger.debug(f"Sent usage notification for {user}")
         except Exception as e:
             logger.error(f"Failed to notify {user} of current usage passing threshold")
