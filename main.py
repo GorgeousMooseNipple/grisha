@@ -73,6 +73,9 @@ async def teardown(app: Application):
 
 
 if __name__ == "__main__":
+    for var, value in os.environ.items():
+        logger.debug(f"{var}={value}")
+
     app = (
         ApplicationBuilder()
         .token(CONFIG.creds.telegram_token)
