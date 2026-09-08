@@ -1,5 +1,6 @@
 import logging
 import aiosqlite
+import math
 from utils.config import CONFIG
 from pathlib import Path
 from typing import Optional, Iterable
@@ -144,7 +145,7 @@ class DbApi:
             logger.debug(
                 f"Executing query '{query}' with current usage at {current_usage}"
             )
-            await cursor.execute(query, (round(current_usage),))
+            await cursor.execute(query, (math.floor(current_usage),))
             usage_rows = await cursor.fetchall()
             return [User(**row) for row in usage_rows]
 
