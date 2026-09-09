@@ -44,4 +44,4 @@ async def handle_chat_status(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
 
-status_handler = ChatMemberHandler(handle_chat_status, ChatMemberHandler.MY_CHAT_MEMBER)
+status_handler = ChatMemberHandler(handle_chat_status, ChatMemberHandler.CHAT_MEMBER)
