@@ -81,6 +81,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"/hilfe update: {update}")
+    user = update.effective_user
+    if not user:
+        logger.warning("User is not set for /hilfe command")
+        return
+    logger.info(f"Got /hilfe command from: {user.username}({user.id})")
+
+    help_msg = replies.HELP
+
+    db: DbApi = context.bot_data["db"]
+    existing_user = await db.user_by_id(user.id)
+    if not existing_user:
+        logger.error(f"/help unrecognized user: {user}")
+        help_msg = help_msg.format(threshold=CONFIG.settings.default_threshold)
+    else:
+        help_msg = help_msg.format(threshold=existing_user.threshold)
+
+    await context.bot.send_message(user.id, text=help_msg)
+
+
 async def current_usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.debug(f"/usage update: {update}")
     user = update.effective_user
@@ -360,6 +381,7 @@ async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 
 start_handler = CommandHandler("start", start)
+start_handler = CommandHandler("hilfe", help)
 usage_handler = CommandHandler("usage", current_usage)
 stats_handler = ConversationHandler(
     entry_points=[CommandHandler("stats", stats_init)],
