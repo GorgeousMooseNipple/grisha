@@ -401,7 +401,7 @@ async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 
 start_handler = CommandHandler("start", start)
-start_handler = CommandHandler("hilfe", help)
+help_handler = CommandHandler("hilfe", help)
 usage_handler = CommandHandler("usage", current_usage)
 stats_handler = ConversationHandler(
     entry_points=[CommandHandler("stats", stats_init)],

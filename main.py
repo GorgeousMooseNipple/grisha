@@ -90,6 +90,7 @@ if __name__ == "__main__":
     app.add_handler(handlers.members.status_handler)
 
     app.add_handler(handlers.commands.start_handler)
+    app.add_handler(handlers.commands.help_handler)
     app.add_handler(handlers.commands.usage_handler)
     app.add_handler(handlers.commands.stats_handler)
     app.add_handler(handlers.commands.threshold_handler)
