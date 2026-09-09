@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 async def update_usage(context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Polling current usage")
     db: DbApi = context.bot_data["db"]
     cc_client: CCApi = context.bot_data["cc_client"]
     vm: VmInfo = context.bot_data["vm"]
