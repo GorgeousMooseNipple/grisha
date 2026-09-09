@@ -2,6 +2,7 @@ import os
 import logging
 import handlers.commands
 import handlers.messages
+import handlers.error
 from logging.handlers import RotatingFileHandler
 from telegram.ext import ApplicationBuilder, Application
 from utils import CONFIG
@@ -94,6 +95,8 @@ if __name__ == "__main__":
 
     app.add_handler(handlers.messages.image_handler)
     app.add_handler(handlers.messages.fallback_message_handler)
+
+    app.add_error_handler(handlers.error.error_handler)
 
     logger.info("Polling for updates...")
     app.run_polling()

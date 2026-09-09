@@ -16,6 +16,7 @@ class Creds:
     vm_ip: str
     cc_token: str
     telegram_token: str
+    dev_id: int
 
 
 @dataclass
