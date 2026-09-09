@@ -288,7 +288,10 @@ async def process_threshold_input(update: Update, context: ContextTypes.DEFAULT_
 
     try:
         await db.set_threshold(existing_user.id, new_threshold)
-        reply = f"Договорились! Пришлю тебе уведомление, если использование трафика будет выше {new_threshold}%!\n"
+        if existing_user.notify:
+            reply = replies.THRESHOLD_SET.format(threshold=new_threshold)
+        else:
+            reply = replies.THRESHOLD_SET_WARN.format(threshold=new_threshold)
         if rest:
             reply += f"P.S. а вот как с этим быть я не понял: '{' '.join(rest)}'"
     except Exception as e:
