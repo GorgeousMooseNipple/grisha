@@ -3,6 +3,7 @@ import logging
 import handlers.commands
 import handlers.messages
 import handlers.error
+import handlers.members
 from logging.handlers import RotatingFileHandler
 from telegram.ext import ApplicationBuilder, Application
 from utils import CONFIG
@@ -85,6 +86,8 @@ if __name__ == "__main__":
         .post_stop(teardown)
         .build()
     )
+
+    app.add_handler(handlers.members.status_handler)
 
     app.add_handler(handlers.commands.start_handler)
     app.add_handler(handlers.commands.usage_handler)
