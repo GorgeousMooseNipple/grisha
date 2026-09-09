@@ -1,4 +1,5 @@
 import logging
+import telegram.error
 from telegram.ext import ContextTypes
 from db import DbApi
 from db.model import YearMonth
@@ -56,5 +57,8 @@ async def update_usage(context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(user.id, text=notification)
             await db.set_notified(user.id)
             logger.debug(f"Sent usage notification for {user}")
+        except telegram.error.Forbidden as e:
+            logger.warning(f"User {user} seems to block/delete chat: {e}")
+            await db.disable_notifications(user.id)
         except Exception as e:
             logger.error(f"Failed to notify {user} of current usage passing threshold")
