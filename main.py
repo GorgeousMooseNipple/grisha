@@ -91,6 +91,7 @@ if __name__ == "__main__":
     app.add_handler(handlers.commands.threshold_handler)
     app.add_handler(handlers.commands.notify_handler)
     app.add_handler(handlers.commands.shutup_handler)
+    app.add_handler(handlers.commands.shutdown_handler)
     app.add_handler(handlers.commands.fallback_handler)
 
     app.add_handler(handlers.messages.image_handler)

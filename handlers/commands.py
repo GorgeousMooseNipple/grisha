@@ -3,6 +3,7 @@ import random
 from typing import cast, Optional
 from enum import Enum
 from telegram import Update
+from telegram import User as TgUser
 from telegram.ext import (
     ContextTypes,
     CommandHandler,
@@ -19,6 +20,12 @@ from utils.config import CONFIG
 
 
 logger = logging.getLogger(__name__)
+
+
+def _is_dev(user: TgUser | None) -> bool:
+    if user and user.id == CONFIG.creds.dev_id:
+        return True
+    return False
 
 
 class CommandState(Enum):
@@ -45,6 +52,16 @@ async def end_conversation(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
     await message.reply_text("Окей)")
     return ConversationHandler.END
+
+
+async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"/shutdown update: {update}")
+    user = update.effective_user
+    if _is_dev(user):
+        logger.info("Initializing safe shutdown...")
+        context.application.stop_running()
+    else:
+        logger.error(f"Unauthorized shutdown requested by {user}")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -414,4 +431,5 @@ threshold_handler = ConversationHandler(
 )
 notify_handler = CommandHandler("notify", enable_notifications)
 shutup_handler = CommandHandler("shutup", shut_up_notifications)
+shutdown_handler = CommandHandler("shutdown", shutdown)
 fallback_handler = MessageHandler(filters.COMMAND, fallback_command)
