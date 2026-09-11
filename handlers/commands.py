@@ -62,6 +62,8 @@ async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.application.stop_running()
     else:
         logger.error(f"Unauthorized shutdown requested by {user}")
+        if update.effective_message:
+            await update.effective_message.reply_text(text=replies.UNKNOWN_COMMAND)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -400,6 +402,28 @@ async def fallback_command(update: Update, _: ContextTypes.DEFAULT_TYPE):
     await message.reply_text(replies.UNKNOWN_COMMAND)
 
 
+async def get_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.debug(f"/users update: {update}")
+    user = update.effective_user
+    if not _is_dev(user):
+        logger.error(f"Unauthorized /users requested by {user}")
+        if update.effective_message:
+            await update.effective_message.reply_text(text=replies.UNKNOWN_COMMAND)
+        return
+
+    logger.info("Getting bot users")
+    db: DbApi = context.bot_data["db"]
+    try:
+        users = await db.users()
+        user_list = "\n".join(str(user) for user in users)
+        reply = f"<pre>User list:\n{user_list}</pre>"
+        assert user, "Initialized by user command - should contain user"
+        await context.bot.send_message(user.id, text=reply, parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.error(f"Failed to get users with {e}")
+        raise
+
+
 start_handler = CommandHandler("start", start)
 help_handler = CommandHandler("hilfe", help)
 usage_handler = CommandHandler("usage", current_usage)
@@ -432,4 +456,5 @@ threshold_handler = ConversationHandler(
 notify_handler = CommandHandler("notify", enable_notifications)
 shutup_handler = CommandHandler("shutup", shut_up_notifications)
 shutdown_handler = CommandHandler("shutdown", shutdown)
+users_handler = CommandHandler("users", get_users)
 fallback_handler = MessageHandler(filters.COMMAND, fallback_command)
