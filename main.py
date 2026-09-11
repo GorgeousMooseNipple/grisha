@@ -3,13 +3,14 @@ import logging
 import handlers.commands
 import handlers.messages
 import handlers.error
+from datetime import time
 from logging.handlers import RotatingFileHandler
 from telegram.ext import ApplicationBuilder, Application
 from utils import CONFIG
 from utils.logs import ColorFormatter
 from cc import CCApi
 from db import DbApi
-from jobs.notifications import update_usage
+from jobs.notifications import update_usage, notify_monthly
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -64,6 +65,12 @@ async def setup(app: Application):
         interval=CONFIG.settings.usage_polling_interval,
         first=10,
         name="usage_polling",
+    )
+    app.job_queue.run_monthly(
+        notify_monthly,
+        day=1,
+        when=time(hour=16, minute=30),
+        name="monthly_notification",
     )
 
 

@@ -1,3 +1,4 @@
+import httpx
 import logging
 import telegram.error
 from telegram.ext import ContextTypes
@@ -5,6 +6,8 @@ from db import DbApi
 from db.model import YearMonth
 from cc import CCApi, VmInfo
 from assets import replies
+from utils.config import CONFIG
+from utils.utils import url_base
 
 
 logger = logging.getLogger(__name__)
@@ -62,3 +65,45 @@ async def update_usage(context: ContextTypes.DEFAULT_TYPE):
             await db.disable_notifications(user.id)
         except Exception as e:
             logger.error(f"Failed to notify {user} of current usage passing threshold")
+
+
+async def _get_exchange_rate(rates_url: str) -> float:
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(rates_url, timeout=15)
+        resp.raise_for_status()
+        j_rates = resp.json()
+        rate = j_rates[0]
+        return rate["rate"]
+
+
+async def notify_monthly(context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Sending monthly notification")
+    db: DbApi = context.bot_data["db"]
+    try:
+        users = await db.users_with_notification()
+    except Exception as e:
+        logger.error(
+            f"Failed to get users with notificaions for monthly update with {e}"
+        )
+        raise
+
+    logger.info(f"Should notify {len(users)} users")
+    if not users:
+        return
+    rate_info = ""
+    #  rates_url = CONFIG.settings.rates_url
+    #  try:
+    #      if rates_url:
+    #          current_rate = await _get_exchange_rate(rates_url)
+    #          rate_info = f"Согласно '{url_base(rates_url)}', текущий курс: {current_rate} рубля (может быть просрочен на сутки)"
+    #  except Exception as e:
+    #      logger.error(f"Failed to get current rate from '{rates_url}' with {e}")
+
+    reply = replies.MONTHLY_NOTIFICATION.format(exchange_rate_info=rate_info)
+    for user in users:
+        logger.debug(f"Monthly notification for {user}")
+        try:
+            await context.bot.send_message(user.id, text=reply)
+        except telegram.error.Forbidden as e:
+            logger.warning(f"User {user} seems to block/delete chat: {e}")
+            await db.disable_notifications(user.id)

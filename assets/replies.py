@@ -88,3 +88,9 @@ THRESHOLD_SET_WARN = textwrap.dedent("""\
     Договорились!
     Не забудь включить уведомления с помощью /notify, тогда я напишу тебе, если использование трафика будет выше {threshold}%!
     """)
+
+MONTHLY_NOTIFICATION = textwrap.dedent("""\
+    Hallo!
+    Вот и новый месяц наступил, пора платить дань)
+    {exchange_rate_info}
+    """)

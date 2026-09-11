@@ -3,7 +3,7 @@ import tomllib
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class Settings:
     storage_path: str = str(Path.home().joinpath(".local/share/grisha"))
     usage_polling_interval: int = 300
     stats_padding: int = 11
+    rates_url: Optional[str] = None
 
 
 @dataclass
